@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limit Load Example</title>
+</head>
+
+<body>
+    <script>
+        const imageUrls = [
+            'https://copyright.bdstatic.com/vcg/creative/cc9c744cf9f7c864889c563cbdeddce6.jpg@h_1280',
+            'https://inews.gtimg.com/om_bt/OHyQqgC_5oi4Vm0tlH49XvJzqNBHo2Zryxx5F_be5N2cIAA/1000',
+            'https://inews.gtimg.com/om_bt/OGlQWfsaAoKkuCcMZ2o9IVEPqd-72DQy5EAN02XBHUwfYAA/641',
+            'https://univs-news-1256833609.file.myqcloud.com/resource_files/cont_pub/I/AIJOI/J3SLIQIDP5BOND3A2T57W6BTOI.png',
+            'https://img1.baidu.com/it/u=465289696,3068910287&fm=253&fmt=auto&app=138&f=JPEG?w=800&h=1067'
+        ];
+
+        const limit = 2; // 最多同时加载两张图片
+
+        function fetchImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function () {
+                    resolve(img);
+                };
+                img.onerror = function () {
+                    reject(new Error('Failed to load image'));
+                };
+                img.src = url;
+            });
+        }
+
+        // 限制并发请求的函数
+        function limitLoad(urls, handler, limit) {
+            const sequence = urls.slice();
+            const promises = [];
+
+            function next() {
+                if (sequence.length === 0) {
+                    return Promise.all(promises);
+                }
+
+                const url = sequence.shift();
+                const promise = handler(url).then((data) => {
+                    console.log('Image loaded:', data); // 输出获取到的图片对象
+                    return next();
+                });
+
+                return Promise.race(promises).then(() => {
+                    promises.push(promise);
+                });
+            }
+
+            for (let i = 0; i < limit && sequence.length > 0; i++) {
+                const url = sequence.shift();
+                const promise = handler(url).then((data) => {
+                    console.log('Image loaded:', data); // 输出获取到的图片对象
+                    return i;
+                });
+                promises.push(promise);
+            }
+
+            return next();
+
+        }
+        // 调用限制并发请求的函数
+        limitLoad(imageUrls, fetchImage, limit)
+            .then(() => {
+                console.log('All images loaded successfully');
+            })
+            .catch((error) => {
+                console.log('Error loading images:', error);
+            });
+    </script>
+</body>
+
+</html>
